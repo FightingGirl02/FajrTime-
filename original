@@ -31,7 +31,6 @@ x_seconds = time_data.dt.hour * 3600 + time_data.dt.minute * 60 + time_data.dt.s
 
 # Calculate the differences
 diff = np.diff(y_valid)
-print(f"1) {len(y_valid)}")
 
 # Take the values for the trendline (which decrease gradually but in linear changes)
 valid_idx = []
@@ -39,7 +38,6 @@ for i in range(len(diff)-4):
     window = diff[i:i+4]
     if np.count_nonzero(window == 0) > 0:  # If there are any zeros
         valid_idx.append(i)
-print(f"2) valid index x : {len(valid_idx)}")
 
 # Perform linear regression for the trendline
 x_valid_seconds = x_seconds[valid_idx]
@@ -49,13 +47,11 @@ slope, intercept, r_value, p_value, std_err = linregress(x_valid_seconds, y_vali
 
 # Compute the trendline
 trendline = slope * x_seconds + intercept
-print(f"2.1) trendline : {len(trendline)}")
 
 # Calculate the percentage difference
 percent_diff = ((trendline - y_valid) / trendline) * 100
-print(f"3){len(percent_diff)}")
 for j in range(len(percent_diff)-1):
-    #print(f"{j}\t{trendline[j]}\t{percent_diff[j]}")
+    print(f"{j}\t{trendline[j]}\t{percent_diff[j]}")
     if percent_diff[j] > 1.0:
     #if percent_diff[j] > 0.5:
        fajr_idx = j
