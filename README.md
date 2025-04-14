@@ -1,1 +1,1 @@
-# FajrTime-
+Detecting Fajr Prayer Time
