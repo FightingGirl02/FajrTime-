@@ -1,5 +1,3 @@
-Detecting Fajr Prayer Time
-
 # Fajr Prayer Time Detection System
 
 This project aims to develop a reliable algorithmic system to detect the **earliest Fajr prayer time (Subh Sadiq)** based on astronomical observations, light intensity measurements, and data analysis. It combines principles from Islamic astronomy and modern sensor technology to ensure accurate prayer timings.
