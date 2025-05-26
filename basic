@@ -1,0 +1,69 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import linregress
+
+# Load data from CSV
+#df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORI_observatorynegaralangkawi_20241206_2.csv', header=40)
+df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORIGINAL/ONL D4.csv', header=40)
+#df = pd.read_csv('/Users/husnakamal/Downloads/20190710_052510_10D-2.csv', header=34)
+
+# Extract x and y columns
+x = df['HH:mm:ss.fff.1'].to_numpy()
+y = df['mag/arcsec^2'].to_numpy()
+
+# Ignore NaN values during gradient calculation
+valid_mask = df['HH:mm:ss.fff.1'].notna() & df['mag/arcsec^2'].notna()
+x_valid = df.loc[valid_mask, 'HH:mm:ss.fff.1']
+y_valid = df.loc[valid_mask, 'mag/arcsec^2']
+
+# Remove 'AM' from the time data if necessary
+x_new = [time.replace(' AM', '') for time in x_valid]
+
+# Convert time to seconds
+time_data = pd.Series(pd.to_datetime(x_new, format='%H:%M:%S', errors='coerce'))
+x_seconds = time_data.dt.hour * 3600 + time_data.dt.minute * 60 + time_data.dt.second
+
+# Calculate the differences
+diff = np.diff(y_valid)
+
+# Take the values for the trendline
+valid_idx = []
+for i in range(len(diff)-2): 
+    window = diff[i:i+2]
+    if np.count_nonzero(window == 0) > 0:  # If there are any zeros
+        valid_idx.append(i)  
+
+# Perform linear regression for the trendline
+x_valid_seconds = x_seconds[valid_idx]
+y_valid_values = y_valid.iloc[valid_idx]
+slope, intercept, r_value, p_value, std_err = linregress(x_valid_seconds, y_valid_values)
+
+# Compute the trendline
+trendline = slope * x_seconds + intercept
+
+# Calculate the percentage difference
+percent_diff = ((trendline - y_valid) / trendline) * 100
+#for j in range(len(percent_diff)-1):
+ #   print(f"{j}\t{trendline[j]}\t{percent_diff[j]}")
+
+# Identify the indices where percent_diff > 1.0
+above_1_percent = np.where(percent_diff > 0.25)[0]  # Indices where percent_diff > 1
+
+# Find the first index where percent_diff > 1.0
+start_idx = above_1_percent[0] if len(above_1_percent) > 0 else None
+start_x = x_seconds[start_idx] if start_idx is not None else None
+
+# Plot the graph
+plt.plot(x_seconds, y_valid, color="blue", label="Magnitude vs Time")
+plt.plot(x_seconds, trendline, color="orange", label=f"Trendline: y = {slope:.2f}x + {intercept:.2f}")
+
+# Plot a vertical line at the starting point of percent_diff > 1.0
+if start_x is not None:
+    plt.axvline(x=start_x, color='red', linestyle='--', label=f"Fajr at {x_new[start_idx]}")
+
+plt.xlabel("Time (seconds)")
+plt.ylabel("Magnitude (mag/arcsec^2)")
+plt.title("Magnitude vs Time")
+plt.legend()
+plt.show()
