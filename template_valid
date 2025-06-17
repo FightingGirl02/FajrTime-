@@ -1,0 +1,144 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.stats import linregress
+
+# Load data from CSV
+# header - starting row
+df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORIGINAL/ONL D4.csv', header=40)
+
+# Extract x and y columns
+x = df['HH:mm:ss.fff.1'].to_numpy()
+y = df['mag/arcsec^2'].to_numpy()
+
+# Ignore NaN values during gradient calculation
+valid_mask = df['HH:mm:ss.fff.1'].notna() & df['mag/arcsec^2'].notna()
+x_valid = df.loc[valid_mask, 'HH:mm:ss.fff.1']
+y_valid = df.loc[valid_mask, 'mag/arcsec^2']
+
+# Remove 'AM' from the time data if necessary
+x_new = [time.replace(' AM', '') for time in x_valid]
+
+# Convert time to seconds
+time_data = pd.Series(pd.to_datetime(x_new, format='%H:%M:%S', errors='coerce'))
+x_seconds = time_data.dt.hour * 3600 + time_data.dt.minute * 60 + time_data.dt.second
+
+# -------------------------------------------------------------------------------------------------
+
+# Identify Fajr prayer time
+def rapid_changes(percent):
+    print("3. Finding the Fajr prayer time.")
+    # Identify the indices where percent_diff > 0.25
+    changes = np.where(percent > 0.25)[0]
+
+    # Find the first index where percent_diff > 0.25
+    if len(changes) > 0:
+        start_idx = changes[0] # Take the first index
+    else:
+        None
+
+    return start_idx
+
+# Generate threshold line
+def threshold_line(data_y, data_x, row):
+    print("2. Generating threshold line.")
+    y = np.array(data_y)[row]
+    x = np.arange(len(y))
+    m, c = np.polyfit(x,y,1)
+    linear_eq = m * x + c
+    real_line = c
+    
+    return real_line, m, c
+
+# Collect the constant magnitude values
+def constant_line(data, length=90):
+    print("1. Collecting values for threshold line.\n")
+    continuous_line = []
+    continuous_index = []
+    for j in range(len(data)):
+        element = data[j]
+        if -0.010<=element<=0.010:
+            if data[j]!=0: # Non-zero values
+                if data[j-1]!=0: # Check either previous data is 0 or not
+                    if data[j]==data[j-1]: # Exp: 0.01 0.01
+                        continuous_line = []
+                        continuous_index = []
+                    elif (data[j]<data[j-1]) or (data[j]>data[j-1]):
+                        continuous_line.append(float(element))
+                        continuous_index.append(j) 
+                else:
+                    continuous_line.append(float(element))
+                    continuous_index.append(j)
+            else:
+                continuous_line.append(float(element))
+                continuous_index.append(j)
+        
+        else:
+            continuous_line = []
+            continuous_index = []
+        
+        if len(continuous_line)==length:
+            break
+     
+    return continuous_index, continuous_line
+
+# Find the differences in magnitude
+differences = np.diff(y_mag)
+
+# Threshold Line
+threshold_idx, threshold_mag = constant_line(differences) # Collect values for threshold line
+    
+threshold, slope, intercept = threshold_line(y_mag, x_seconds, threshold_idx) # Generate threshold line
+print("The threshold line is at %.2f mag/arcsec^2.\n"%threshold)
+
+# Calculate percentage differences
+percent_diff = ((threshold - y_mag) / threshold) * 100
+    
+# Find Fajr time
+fajr_idx = rapid_changes(percent_diff)
+if fajr_idx is not None:
+    print(f"The starting of Fajr prayer is at {x_seconds[fajr_idx]} seconds which equivalent to {x_time[fajr_idx]}AM.")
+    window = 20
+    start_window = max(0, fajr_idx - window)
+    end_window = min(len(y_mag), fajr_idx + window + 1)
+    
+    print("\nData points around the starting time:")
+    print("Index\tTime\tBrightness\tChanges\tMarker")
+    for idx in range(start_window, end_window):
+          if idx == fajr_idx:
+                marker = "Fajr"  # Highlight this row with the word 'Fajr'
+                print(f"{idx}\t{x_time[idx]}\t{y_mag[idx]}\t\t{percent_diff[idx]:.2f}\t{marker}")
+          else:
+              marker = ""  # Let the marker empty
+              print(f"{idx}\t{x_time[idx]}\t{y_mag[idx]}\t\t{percent_diff[idx]:.2f}\t{marker}")
+else:
+    print("Fajr cannot be detected.")
+
+graph = int(input("Display graph (Original:1 // Percentage Difference:0): "))
+# Plot the graph, fajr critical line, threshold line
+plt.figure(figsize=(10, 6))
+if graph == 1:
+    plt.plot(x_seconds, y_mag, color='orange') # Plot the graph
+    plt.grid(True)
+    plt.axhline(y=threshold, color='green', linestyle='--', label=f'Fitted line: y = {slope:.2e}x + {intercept:.2f}') # Plot the threshold line
+    if fajr_idx is not None: # Plot the Fajr time
+        plt.axvline(x=x_seconds.iloc[fajr_idx], color='red', linestyle="--", label=f"Fajr prayer time which equivalent to {x_seconds[fajr_idx]} seconds")
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Magnitude (mag/arcsec^2)"
+    plt.title(f"Percentage Difference on {date}")
+    plt.legend()
+    plt.show()
+elif graph == 0:
+    plt.plot(x_seconds, percent_diff, color='blue') # Plot the graph
+    plt.grid(True)
+    plt.axhline(y=0, color='green', linestyle='--', label=f'Fitted line: y = {slope:.2e}x + {intercept:.2f}') # Plot the threshold line
+    if fajr_idx is not None: # Plot the Fajr time
+        plt.axvline(x=x_seconds.iloc[fajr_idx], color='red', linestyle="--", label=f"Fajr prayer time which equivalent to {x_seconds[fajr_idx]} seconds")
+    plt.xlabel("Time (seconds)")
+    plt.ylabel("Percentage Difference of Magnitude (%)")
+    plt.title(f"Percentage Difference on {date}")
+    plt.legend()
+    plt.show()
+else:
+    print("Invalid value")
+    
