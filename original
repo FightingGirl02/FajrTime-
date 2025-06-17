@@ -4,9 +4,8 @@ import matplotlib.pyplot as plt
 from scipy.stats import linregress
 
 # Load data from CSV
-#df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORI_observatorynegaralangkawi_20241206_2.csv', header=40)
+# header - starting row
 df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORIGINAL/ONL D4.csv', header=40)
-#df = pd.read_csv('/Users/husnakamal/Downloads/20190710_052510_10D-2.csv', header=34)
 
 # Extract x and y columns
 x = df['HH:mm:ss.fff.1'].to_numpy()
