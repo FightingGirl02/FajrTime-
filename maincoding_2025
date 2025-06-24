@@ -4,46 +4,27 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 
-# Load the CSV file and header
-print("-"*80)
-print("File path is needed in this system, to get it (in CSV file):\n\t1- Open the file.\n\t2- Search for the properties of the file.\n\t3- Copy the location and the file name.\n\t(Exp:/file_path/file_name.csv)")
-print("\nThe x columns (Time) - HH:mm:ss.fff.1 and the y columns (MPASS) - mag/arcsec^2.")
-print("-"*80)
+# Load data from CSV
+df = pd.read_csv('/Users/husnakamal/Downloads/20190710_052510_10D-2.csv', header=34)
 
-file_path = input(">>Enter your file path name :")
-m = int(input(">>Enter the starting row of the column name (n-1):"))
-date = input("Date of the observation:")
+df.head()
+df.info()
 
-# Read the data
-df = pd.read_csv(file_path, header=m)
-
-# Check the header 
-while 'HH:mm:ss.fff.1' not in df.columns and 'mag/arcsec^2' not in df.columns:
-    print(f"\nColumn names in row {m}:\n", df.columns.tolist())
-    print("\nWrong starting row.")
-    m = int(input(">>Enter the new starting row of the column name :"))
-    df = pd.read_csv(file_path, header=m)
-
-print(f"\nColumn names in row {m}:\n", df.columns.tolist())
-print("-"*80)
-
-# Extract relevant columns
+# Extract x and y columns
 x = df['HH:mm:ss.fff.1'].to_numpy()
 y = df['mag/arcsec^2'].to_numpy()
- 
-# Ignore NaN values during calculations
+
+# Ignore NaN values during gradient calculation
 valid_mask = df['HH:mm:ss.fff.1'].notna() & df['mag/arcsec^2'].notna()
 x_valid = df.loc[valid_mask, 'HH:mm:ss.fff.1']
-y_mag = df.loc[valid_mask, 'mag/arcsec^2']
+y_valid = df.loc[valid_mask, 'mag/arcsec^2']
 
-# Clean time strings and convert to seconds
-x_time = [time.replace(' AM', '') for time in x_valid]
-time_data = pd.Series(pd.to_datetime(x_time, format='%H:%M:%S', errors='coerce'))
+# Remove 'AM' from the time data if necessary
+x_new = [time.replace(' AM', '') for time in x_valid]
+
+# Convert time to seconds
+time_data = pd.Series(pd.to_datetime(x_new, format='%H:%M:%S', errors='coerce'))
 x_seconds = time_data.dt.hour * 3600 + time_data.dt.minute * 60 + time_data.dt.second
-
-print("Time:\n", x_valid)
-print("Magnitude:\n", y_mag)
-print("-"*80)
 
 # ------------------------------------------------------------------------------------
 
