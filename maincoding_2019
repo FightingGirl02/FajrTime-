@@ -5,8 +5,6 @@ from scipy.stats import linregress
 
 # Load data from CSV
 df = pd.read_csv('/Users/husnakamal/Downloads/20190710_052510_10D-2.csv', header=34)
-#df = pd.read_csv('/Users/husnakamal/Downloads/TEST_observatorynegaralangkawi_20241206_2.csv', header=40)
-#df = pd.read_csv('/Users/husnakamal/Documents/DATA SQM/ORI_observatorynegaralangkawi_20241206_2.csv', header=40)
 
 df.head()
 df.info()
